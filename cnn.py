@@ -5,11 +5,20 @@
 
 import tensorflow as tf
 from tensorflow.keras.datasets import fashion_mnist
+from sklearn.model_selection import train_test_split
+import numpy as np
 
-(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+(x_trainf, y_trainf), (x_test, y_test) = fashion_mnist.load_data()
 
-x_train = x_train.astype('float32') / 255.0
+x_trainf = x_trainf.astype('float32') / 255.0
 x_test = x_test.astype('float32') / 255.0
+
+x_train, x_valid, y_train, y_valid = train_test_split(x_trainf, y_trainf, test_size=0.1)
+
+# tf expects a (28, 28, 1) shape, so we add 
+x_train = x_train[..., np.newaxis] 
+x_valid = x_valid[..., np.newaxis]
+x_test = x_test[..., np.newaxis]
 
 # The kernel size defines the size of the receptive field
 conv_layer = tf.keras.layers.Conv2D(filters=32, kernel_size=7, padding='same')
@@ -55,15 +64,13 @@ model = tf.keras.Sequential([
 ])
 
 et_callback = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
-lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=3, factor=0.5, monitor='loss')
+lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=3, factor=0.5, monitor='val_loss')
 
 model.compile(loss='sparse_categorical_crossentropy', optimizer='nadam', metrics=['accuracy'])
 
+model.fit(x_train, y_train, validation_data=(x_valid, y_valid) ,epochs=10, callbacks=[et_callback, lr_callback])
 
-model.fit(x_train, y_train, epochs=20, callbacks=[et_callback, lr_callback])
-
-result = model.evaluate(x_test, y_test)
-print(result)
+loss, acc = model.evaluate(x_test, y_test)
 
 x_new = x_test[:3]
 y_pred = model.predict(x_new)
@@ -71,3 +78,4 @@ y_pred = model.predict(x_new)
 import numpy as np
 print('real values: ', y_test[:3])
 print('predicted: ', np.argmax(y_pred, axis=1))
+print('accuracy: ', acc*100, '%')
