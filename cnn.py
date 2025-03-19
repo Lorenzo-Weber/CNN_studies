@@ -8,6 +8,9 @@ from tensorflow.keras.datasets import fashion_mnist
 
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
 
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
 # The kernel size defines the size of the receptive field
 conv_layer = tf.keras.layers.Conv2D(filters=32, kernel_size=7, padding='same')
 
@@ -51,8 +54,20 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dense(units=10, activation='softmax')
 ])
 
-model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(), metrics=['accuracy'])
-model.fit(x_train, y_train, epochs=5)
+et_callback = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
+lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=3, factor=0.5, monitor='loss')
+
+model.compile(loss='sparse_categorical_crossentropy', optimizer='nadam', metrics=['accuracy'])
+
+
+model.fit(x_train, y_train, epochs=20, callbacks=[et_callback, lr_callback])
 
 result = model.evaluate(x_test, y_test)
 print(result)
+
+x_new = x_test[:3]
+y_pred = model.predict(x_new)
+
+import numpy as np
+print('real values: ', y_test[:3])
+print('predicted: ', np.argmax(y_pred, axis=1))
