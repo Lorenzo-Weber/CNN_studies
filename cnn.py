@@ -63,6 +63,24 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dense(units=10, activation='softmax')
 ])
 
+alexNet = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=[28,28,1]),
+    DefaultConv2D(filters=96, kernel_size=11),
+    tf.keras.layers.MaxPool2D(),
+    DefaultConv2D(filters=256, kernel_size=5),
+    tf.keras.layers.MaxPool2D(),
+    DefaultConv2D(filters=384, kernel_size=3),
+    DefaultConv2D(filters=256, kernel_size=3),
+    DefaultConv2D(filters=256, kernel_size=3),
+    tf.keras.layers.MaxPool2D(),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(units=4096, activation='relu', kernel_initializer='he_normal'),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(units=4096, activation='relu', kernel_initializer='he_normal'),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(units=10, activation='softmax'),
+])
+
 et_callback = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
 lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=3, factor=0.5, monitor='val_loss')
 
