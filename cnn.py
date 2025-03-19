@@ -3,16 +3,13 @@
 # - tensorflow (pip install tensorflow or pip install tensorflow[gpu])
 # - PIL (pip install --upgrade Pillow)
 
-from sklearn.datasets import load_sample_images
 import tensorflow as tf
+from tensorflow.keras.datasets import fashion_mnist
 
-images = load_sample_images()['images']
-images = tf.keras.layers.CenterCrop(height=70, width=120)(images)
-images = tf.keras.layers.Rescaling(scale=1/255.0)(images)
+(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
 
 # The kernel size defines the size of the receptive field
 conv_layer = tf.keras.layers.Conv2D(filters=32, kernel_size=7, padding='same')
-fmaps = conv_layer(images)
 
 pool_layer = tf.keras.layers.MaxPooling2D(pool_size=2, strides=2)
 
@@ -31,16 +28,14 @@ class DepthPool(tf.keras.layers.Layer):
 
 global_pool = tf.keras.layers.GlobalAvgPool2D()
 
-print(global_pool(images))
-
 # Creating a CNN
-
 from functools import partial
 
 DefaultConv2D = partial(tf.keras.layers.Conv2D, kernel_size=3, padding='same', activation='relu', kernel_initializer='he_normal')
 
 model = tf.keras.Sequential([
-    DefaultConv2D(filters=64, kernel_size=7, input_shape=[28, 28, 1]),
+    tf.keras.layers.Input(shape=[28,28,1]),
+    DefaultConv2D(filters=64, kernel_size=7),
     tf.keras.layers.MaxPool2D(),
     DefaultConv2D(filters=128),
     DefaultConv2D(filters=128),
@@ -55,3 +50,9 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dropout(0.5),
     tf.keras.layers.Dense(units=10, activation='softmax')
 ])
+
+model.compile(loss='sparse_categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(), metrics=['accuracy'])
+model.fit(x_train, y_train, epochs=5)
+
+result = model.evaluate(x_test, y_test)
+print(result)
