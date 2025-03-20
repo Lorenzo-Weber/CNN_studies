@@ -33,7 +33,7 @@ class ResidualUnit(tf.keras.layers.Layer):
             Z = layer(Z)
         
         skip_Z = inputs
-        for lyaer in self.skip_layers:
+        for layer in self.skip_layers:
             skip_Z = layer(skip_Z)
         
         return self.activation(Z+skip_Z)
@@ -42,7 +42,7 @@ resNet = keras.Sequential([
     defaultConv2D(64, kernel_size = 7, strides = 2, input_shape=[224,224,3]),
     keras.layers.BatchNormalization(),
     keras.layers.Activation('relu'),
-    keras.layers.MaxPool2D(pools_size=3, strides=2, padding='same'),
+    keras.layers.MaxPool2D(pool_size=3, strides=2, padding='same'),
 ])
 
 prev_filters = 64
