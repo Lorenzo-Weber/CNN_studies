@@ -1,8 +1,25 @@
 import tensorflow as tf
 from tensorflow import keras
 from functools import partial
+from tensorflow.keras.datasets import fashion_mnist
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 defaultConv2D = partial(keras.layers.Conv2D, kernel_size=3, strides=1, padding='same', kernel_initializer='he_normal', use_bias=False)
+
+
+(x_trainf, y_trainf), (x_test, y_test) = fashion_mnist.load_data()
+
+x_trainf = x_trainf.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+x_train, x_valid, y_train, y_valid = train_test_split(x_trainf, y_trainf, test_size=0.1)
+
+# tf expects a (28, 28, 1) shape, so we add 
+x_train = x_train[..., np.newaxis] 
+x_valid = x_valid[..., np.newaxis]
+x_test = x_test[..., np.newaxis]
+
 
 # Adds a residual input to the output 
 
@@ -39,7 +56,7 @@ class ResidualUnit(tf.keras.layers.Layer):
         return self.activation(Z+skip_Z)
         
 resNet = keras.Sequential([
-    defaultConv2D(64, kernel_size = 7, strides = 2, input_shape=[224,224,3]),
+    defaultConv2D(64, kernel_size = 7, strides = 2, input_shape=[28,28,1]),
     keras.layers.BatchNormalization(),
     keras.layers.Activation('relu'),
     keras.layers.MaxPool2D(pool_size=3, strides=2, padding='same'),
@@ -59,3 +76,17 @@ resNet.add(keras.layers.GlobalAvgPool2D())
 resNet.add(keras.layers.Flatten())
 resNet.add(keras.layers.Dense(10, activation='softmax'))
 
+etCallback = keras.callbacks.EarlyStopping(restore_best_weights = True, patience=5)
+lrCallback = keras.callbacks.ReduceLROnPlateau(factor=0.5, monitor='val_loss', patience=3)
+
+resNet.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+resNet.fit(x_train, y_train, epochs=20, validation_data=(x_valid, y_valid), callbacks=[etCallback, lrCallback])
+
+loss, acc = resNet.evaluate(x_test, y_test)
+
+x_new = x_test[:5]
+y_pred = resNet.predict(x_new)
+
+print('acc: ', acc*100,'%')
+print('Classes: ',  y_test[:5])
+print('Predicted: ' , np.argmax(y_pred, axis=1))
